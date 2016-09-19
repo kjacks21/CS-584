@@ -3,6 +3,7 @@ import numpy as np
 from sklearn import cross_validation
 from sklearn.metrics.pairwise import linear_kernel
 from sklearn.feature_extraction.text import TfidfVectorizer
+import matplotlib.pyplot as plt
 import os
 
 os.chdir("C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW1_Jackson")
@@ -83,11 +84,13 @@ def kNN(k, testTfidf, trainTfidf, test_file, train_label, weight=True):
 
 #########################################################################
 
+# code for validation step
+
 # for loop iterates through possible values for k
 k_list = []
 weight_score_list = []
 non_weight_score_list = []
-for i in [5,7,9,11,13,15,17,19,20,21,23,25,27,29]:
+for i in [5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41]:
     
     # weighted validation
     submission = kNN(k=i, testTfidf=test_tfidf, trainTfidf=train_tfidf, test_file=X_test, train_label=y_train, weight=True)    
@@ -110,14 +113,18 @@ for i in [5,7,9,11,13,15,17,19,20,21,23,25,27,29]:
     print("With weight and k=", i, ", score is", weight_score)
     print("Without weight and k=", i, ", score is", non_weight_score)
     
-    # create lists containing the scores for making a graphic
-    
+    # create lists containing the scores for making a graphic    
     k_list.append(i)    
     weight_score_list.append(weight_score)
     non_weight_score_list.append(weight_score)
 
+score_df = pd.DataFrame({"k":k_list, "weight_score":weight_score_list})
 
-
-
+# validation scores plot
+plt.scatter(score_df['k'], score_df['weight_score'])
+plt.ylabel('Accuracy Score')
+plt.xlabel('k-Neighbors')
+plt.title('Validation Scores Using Varying k-Neighbor Values')
+plt.show()
 
 

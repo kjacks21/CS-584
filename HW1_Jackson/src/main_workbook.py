@@ -89,6 +89,16 @@ def preprocessing(raw_text_df):
 preprocessing(train_X)
 preprocessing(test_X)
 
+
+# read in already cleaned data
+train_X = pd.read_table("data/clean_train.txt", header=None)
+test_X = pd.read_table("data/clean_test.txt", header=None, skip_blank_lines=False)
+train_X.columns = ["data"]
+test_X.columns = ["data"]
+train_X = train_X.data
+test_X = test_X.data
+
+
 # create tf-idf matrix for train and test
 vectorizer = TfidfVectorizer()
 train_tfidf = vectorizer.fit_transform(train_X)
@@ -110,10 +120,10 @@ def kNN(k, testTfidf, trainTfidf, test_file, train_label, weight=True):
     
     trainTfidf: sparse matrix
     
-    test_file:
+    test_file: must be shape (int,)
     contains the preprocessed text for the kNN method to classify
     
-    train_label: 
+    train_label: must be shape (int,)
     contains the labels from the training set
     
     weight: boolean
@@ -135,6 +145,8 @@ def kNN(k, testTfidf, trainTfidf, test_file, train_label, weight=True):
             # get a list of labels from the neighbors and sum the list
             labels_list = train_label[neighbor_indices].tolist()
 
+            # make cosine similarity value negative or positive based on
+            # its label and sum the cosine similarities
             my_list = []            
             for s, l in zip(similarities, labels_list):
                 if l == -1:
@@ -143,6 +155,7 @@ def kNN(k, testTfidf, trainTfidf, test_file, train_label, weight=True):
                     my_list.append(s)   
                     
             label_sum = sum(my_list)
+            #classify based on label_sum
             if label_sum > 0:
                 test_y.append("+1")
             else:
@@ -155,6 +168,7 @@ def kNN(k, testTfidf, trainTfidf, test_file, train_label, weight=True):
             labels_list = train_label[neighbor_indices].tolist()
             label_sum = sum(labels_list)
 
+            # classify based on label_sum
             if label_sum > 0:
                 test_y.append("+1")
             else:
@@ -166,8 +180,8 @@ def kNN(k, testTfidf, trainTfidf, test_file, train_label, weight=True):
 
 #########################################################################
 
-submission = kNN(k=20, testTfidf=test_tfidf, trainTfidf=train_tfidf, test_file=test_X, train_label=train_y, weight=True)
+submission = kNN(k=25, testTfidf=test_tfidf, trainTfidf=train_tfidf, test_file=test_X, train_label=train_y, weight=True)
 
 # writing to .txt
-np.savetxt(r'submissions/submission8-weight-k20-star.txt', submission.values, fmt='%s')
+np.savetxt(r'submissions/submission8-weight-k25-star.txt', submission.values, fmt='%s')
 
