@@ -1,15 +1,18 @@
 import pandas as pd
+from sklearn import metrics
+from sklearn import cross_validation
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
 from sklearn.ensemble import RandomForestClassifier
 from collections import Counter
 from tpot import TPOTClassifier
 import numpy as np
 import os
-
-os.chdir("C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson")
+os.chdir("C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson/src")
 
 # reading in test and train
-train = pd.read_table("data/train.data", header=None, skip_blank_lines=False)
-test = pd.read_table("data/test.data", header=None, skip_blank_lines=False)
+train = pd.read_table("C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson/data/train.data", header=None, skip_blank_lines=False)
+test = pd.read_table("C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson/data/test.data", header=None, skip_blank_lines=False)
 
 label = train[0]
 train = train[1]
@@ -66,15 +69,18 @@ def dense2sparse(train_df, test_df, is_test=False):
             meta_list.append(features)
         
     return pd.DataFrame(meta_list)
-    
+
 sparse_train_df = dense2sparse(train, test)
 sparse_test_df = dense2sparse(train, test, is_test=True)
 
 
 ######################################################################
 # feature engineering
-
-
+sparse_train_df.shape
+# selecting the top features
+kbest = SelectKBest(chi2, k=1000)
+new_train = kbest.fit_transform(sparse_train_df, label)
+new_test = kbest.transform(sparse_test_df)
 
 
 
@@ -85,14 +91,22 @@ my_tpot = my_tpot.fit(sparse_train_df, label)
 tpot_output = my_tpot.predict(sparse_test_df)
 
 
+#######################################################################
+# cross validation
+
+rf = RandomForestClassifier(n_estimators=1000, random_state=1, class_weight="balanced")
+
+scores = cross_validation.cross_val_score(rf, sparse_train_df, label, cv=10, scoring='f1_weighted')
+
+scores_kbest = cross_validation.cross_val_score(rf, new_train, label, cv=10, scoring='f1_weighted')
 
 
-# RandomForestClassifier
 
-rf = RandomForestClassifier(n_estimators = 100)
+########################################################################
 
-forest = rf.fit(sparse_train_df, label)
 
-output = forest.predict(sparse_test_df)
+rf = rf.fit(new_train, label)
 
-np.savetxt(r'submissions/submission1.txt', output, fmt='%s')
+output = rf.predict(new_test)
+
+np.savetxt(r'C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson/submissions/submission5.txt', output, fmt='%s')
