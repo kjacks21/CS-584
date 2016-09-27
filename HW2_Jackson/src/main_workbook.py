@@ -110,4 +110,4 @@ results = exported_pipeline.predict(new_test)
 scores_kbest = cross_validation.cross_val_score(exported_pipeline, new_train, label, cv=10, scoring='f1_weighted')
 
 # writing submission
-np.savetxt(r'submissions/submission5.txt', output, fmt='%s')
+np.savetxt(r'submissions/submission5.txt', results, fmt='%s')
