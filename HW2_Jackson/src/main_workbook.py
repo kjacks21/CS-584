@@ -6,13 +6,18 @@ from sklearn.feature_selection import chi2
 from sklearn.ensemble import RandomForestClassifier
 from collections import Counter
 from tpot import TPOTClassifier
+from sklearn.cross_validation import train_test_split
+from sklearn.ensemble import ExtraTreesClassifier, GradientBoostingClassifier, VotingClassifier
+from sklearn.naive_bayes import BernoulliNB
+from sklearn.pipeline import make_pipeline, make_union
+from sklearn.preprocessing import FunctionTransformer
 import numpy as np
 import os
-os.chdir("C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson/src")
+os.chdir("C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson")
 
 # reading in test and train
-train = pd.read_table("C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson/data/train.data", header=None, skip_blank_lines=False)
-test = pd.read_table("C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson/data/test.data", header=None, skip_blank_lines=False)
+train = pd.read_table("data/train.data", header=None, skip_blank_lines=False)
+test = pd.read_table("data/test.data", header=None, skip_blank_lines=False)
 
 label = train[0]
 train = train[1]
@@ -70,6 +75,7 @@ def dense2sparse(train_df, test_df, is_test=False):
         
     return pd.DataFrame(meta_list)
 
+# create boolean representations of the data
 sparse_train_df = dense2sparse(train, test)
 sparse_test_df = dense2sparse(train, test, is_test=True)
 
@@ -82,31 +88,26 @@ kbest = SelectKBest(chi2, k=1000)
 new_train = kbest.fit_transform(sparse_train_df, label)
 new_test = kbest.transform(sparse_test_df)
 
-
-
 #######################################################################
-# TPOT
-my_tpot = TPOTClassifier(generations=10)  
-my_tpot = my_tpot.fit(sparse_train_df, label)
-tpot_output = my_tpot.predict(sparse_test_df)
+# TPOT building pipline
+pipeline_optimizer = TPOTClassifier(generations=5, num_cv_folds=10, random_state=42, verbosity=2, scoring = "f1")
+pipeline_optimizer.fit(new_train, label)
+print(pipeline_optimizer.score(new_train, label))
+pipeline_optimizer.export('tpot_exported_pipeline.py')
 
 
-#######################################################################
-# cross validation
+# classifier
+exported_pipeline = make_pipeline(
+    make_union(VotingClassifier([("est", ExtraTreesClassifier(criterion="gini", max_features=1.0, n_estimators=500))]), FunctionTransformer(lambda X: X)),
+    make_union(VotingClassifier([("est", GradientBoostingClassifier(learning_rate=0.07, max_features=0.07, n_estimators=500))]), FunctionTransformer(lambda X: X)),
+    BernoulliNB(alpha=0.08, binarize=0.66, fit_prior=True)
+)
 
-rf = RandomForestClassifier(n_estimators=1000, random_state=1, class_weight="balanced")
+exported_pipeline.fit(new_train, label)
+results = exported_pipeline.predict(new_test)
 
-scores = cross_validation.cross_val_score(rf, sparse_train_df, label, cv=10, scoring='f1_weighted')
+# cross-validation
+scores_kbest = cross_validation.cross_val_score(exported_pipeline, new_train, label, cv=10, scoring='f1_weighted')
 
-scores_kbest = cross_validation.cross_val_score(rf, new_train, label, cv=10, scoring='f1_weighted')
-
-
-
-########################################################################
-
-
-rf = rf.fit(new_train, label)
-
-output = rf.predict(new_test)
-
-np.savetxt(r'C:/Users/Kyle/OneDrive/Documents/GMU Classes/CS 584/HW2_Jackson/submissions/submission5.txt', output, fmt='%s')
+# writing submission
+np.savetxt(r'submissions/submission5.txt', output, fmt='%s')
